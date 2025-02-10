@@ -1,10 +1,25 @@
 /* =======================================
-   1) Container
+   1) Body und Container
    ======================================= */
+   html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  
+    /* Verhindert Scrollbalken im Body */
+    overflow: hidden;
+  
+    /* Flexbox-Einstellungen, um den Inhalt zu zentrieren */
+    display: flex;
+    align-items: center;   /* vertikal zentrieren */
+    justify-content: center; /* horizontal zentrieren */
+  }
+   
    #swipe-container {
     position: relative;
-    width: 720px;   /* Feste Breite zum Testen */
-    height: 540px;  /* Feste Höhe */
+    width: 1440px;   /* Feste Breite zum Testen */
+    height: 1080px;  /* Feste Höhe */
     margin: 2rem auto;
     /* border: 2px solid #999; */
     overflow: hidden;
@@ -18,11 +33,11 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 720px;
-    height: 540px;
+    width: 1440px;   /* Feste Breite zum Testen */
+    height: 1080px;
     background-position: center center;
     background-size: cover;
-    clip: rect(0, 720px, 540px, 0); /* JS passt clip dynamisch an */
+    clip: rect(0, 1440px, 1080px, 0); /* JS passt clip dynamisch an */
   }
   
   /* Bilder (Austausch ist möglich) */
@@ -46,7 +61,7 @@
     position: absolute;
     top: 0;
     width: 40px;   /* Griffbox-Breite */
-    height: 540px;
+    height: 1080px;
     background: transparent;
     cursor: ew-resize;
     /* Der z-index wird bei Bedarf per JS dynamisch geändert */
@@ -59,7 +74,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 3px;
-    height: 540px;
+    height: 1080px;
     background: #000;
     /* opacity: 0.5; */
     pointer-events: none;

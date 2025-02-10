@@ -11,8 +11,8 @@ const handle1 = document.getElementById('handle1');
 const handle2 = document.getElementById('handle2');
 
 // Container-Abmessungen
-const WIDTH = 720;
-const HEIGHT = 540;
+const WIDTH = 1440;
+const HEIGHT = 1080;
 
 /* Griffbox-Breite => 40px
    Balkenmitte = handleX + 20
@@ -20,14 +20,14 @@ const HEIGHT = 540;
    bis an den Rand 0..800 zu gehen => 
    handleX: -20..780 */
 const MIN_HANDLE_X = -20;
-const MAX_HANDLE_X = 700;
+const MAX_HANDLE_X = 1420;
 
 // Minimaler Abstand für den "Push" in der Mitte
 const MIN_GAP = 50;
 
 // Start-Positionen der Griffe
-let handle1X = 160;
-let handle2X = 520;
+let handle1X = 260;
+let handle2X = 1120;
 
 // Flags: "Wird gerade gezogen?"
 let isDraggingHandle1 = false;
