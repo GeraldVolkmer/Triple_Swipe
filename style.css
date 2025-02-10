@@ -1,0 +1,93 @@
+/* =======================================
+   1) Container
+   ======================================= */
+   #swipe-container {
+    position: relative;
+    width: 720px;   /* Feste Breite zum Testen */
+    height: 540px;  /* Feste Höhe */
+    margin: 2rem auto;
+    /* border: 2px solid #999; */
+    overflow: hidden;
+  }
+  
+  /* =======================================
+     2) Drei Bilder (layer1, layer2, layer3)
+        -> 720×540, via clip() gesteuert
+     ======================================= */
+  .layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 720px;
+    height: 540px;
+    background-position: center center;
+    background-size: cover;
+    clip: rect(0, 720px, 540px, 0); /* JS passt clip dynamisch an */
+  }
+  
+  /* Bilder (Austausch ist möglich) */
+  #layer1 {
+    background-image: url('Bild1.jpg');
+    z-index: 1;
+  }
+  #layer2 {
+    background-image: url('Bild2.jpg');
+    z-index: 2;
+  }
+  #layer3 {
+    background-image: url('Bild3.jpg');
+    z-index: 3;
+  }
+  
+  /* =======================================
+     3) Zwei Griffe (handle1, handle2)
+     ======================================= */
+  .handle {
+    position: absolute;
+    top: 0;
+    width: 40px;   /* Griffbox-Breite */
+    height: 540px;
+    background: transparent;
+    cursor: ew-resize;
+    /* Der z-index wird bei Bedarf per JS dynamisch geändert */
+  }
+  
+  /* Senkrechter Balken (5px) mittig */
+  .handle-bar {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 540px;
+    background: #000;
+    /* opacity: 0.5; */
+    pointer-events: none;
+  }
+  
+  /* Runder Kreis (Icon) in der Mitte */
+  .handle-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    /* border-radius: 50%; */
+    /* background: #000; */
+    /* border: 2px solid #fff; */
+    /* opacity: 0.8; */
+    pointer-events: none;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-size: 20px;
+  }
+  
+  /* Unicode-Symbol: ⟷, ↔, ⇔, … */
+  .handle-circle::before {
+    content: "◀ ▶";
+  }
+  
