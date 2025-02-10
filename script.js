@@ -1,8 +1,9 @@
 /*********************************************
- * Triple-Swipe Logik (Push + Überlappung + Z-Order)
+ * Triple-Swipe (Responsive)
+ * inkl. Push, Überlappung, Z-Order
  *********************************************/
 
-// Referenzen auf DOM-Elemente
+// Referenzen
 const container = document.getElementById('swipe-container');
 const layer1 = document.getElementById('layer1');
 const layer2 = document.getElementById('layer2');
@@ -10,111 +11,118 @@ const layer3 = document.getElementById('layer3');
 const handle1 = document.getElementById('handle1');
 const handle2 = document.getElementById('handle2');
 
-// Container-Abmessungen
-const WIDTH = 1440;
-const HEIGHT = 1080;
+// Griff-Breite = 40px => Balkenmitte = x + 20
+const HANDLE_WIDTH = 40;
+const HANDLE_RADIUS = HANDLE_WIDTH / 2;
 
-/* Griffbox-Breite => 40px
-   Balkenmitte = handleX + 20
-   Es wird erlaubt mit der Balkenmitte, 
-   bis an den Rand 0..800 zu gehen => 
-   handleX: -20..780 */
-const MIN_HANDLE_X = -20;
-const MAX_HANDLE_X = 1420;
+/* "Virtuelle" X-Positionen (linke Kante) 
+   der Griffe in Container-Koordinaten,
+   z.B. handle1X= 100 => Box left=100px 
+*/
+let handle1X = 0;
+let handle2X = 0;
 
-// Minimaler Abstand für den "Push" in der Mitte
+/* Mindestabstand (in px) 
+   für den "Push" in der Mitte */
 const MIN_GAP = 50;
 
-// Start-Positionen der Griffe
-let handle1X = 260;
-let handle2X = 1120;
-
-// Flags: "Wird gerade gezogen?"
+/* Ziehen-Flags */
 let isDraggingHandle1 = false;
 let isDraggingHandle2 = false;
-
 
 /*********************************************
  * Hilfsfunktionen
  *********************************************/
 
-// Begrenze value auf [min, max]
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(value, max));
-}
-
-// Gibt die Balkenmitte von Griff1 / Griff2
+/** 
+ * Liefert boundary = handleX + 20 (Balkenmitte) 
+ */
 function boundary1() {
-  return handle1X + 20;
+  return handle1X + HANDLE_RADIUS;
 }
 function boundary2() {
-  return handle2X + 20;
+  return handle2X + HANDLE_RADIUS;
 }
 
-// Prüfe, ob Griff1 < Griff2 (keine Überlappung)
-// => "geordnete" Lage
+/** 
+ * Ist handle1 < handle2? (geordnete Lage)
+ */
 function isOrdered() {
   return handle1X <= handle2X;
 }
 
-// Griff1 ganz links?
-function isHandle1AtLeftEdge() {
-  return handle1X <= (MIN_HANDLE_X + 0.001);
+/** 
+ * Begrenze einen Wert [min, max] 
+ */
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(value, max));
 }
 
-// Griff2 ganz rechts?
-function isHandle2AtRightEdge() {
-  return handle2X >= (MAX_HANDLE_X - 0.001);
-}
+/** 
+ * Wendet Clips und Griff-Positionen an,
+ * basierend auf handle1X / handle2X.
+ */
+function applyPositions() {
+  // Container-Größe ermitteln
+  const rect = container.getBoundingClientRect();
+  const cWidth = rect.width;
+  const cHeight = rect.height;
 
-// Aktualisiere die Ausschnitte (clip) der drei Bilder
-function updateClips() {
+  // Balkenmitten
   const b1 = boundary1();
   const b2 = boundary2();
-  layer1.style.clip = `rect(0, ${b1}px, ${HEIGHT}px, 0)`;
-  layer2.style.clip = `rect(0, ${b2}px, ${HEIGHT}px, ${b1}px)`;
-  layer3.style.clip = `rect(0, ${WIDTH}px, ${HEIGHT}px, ${b2}px)`;
+
+  // 1. Ausschnitte festlegen
+  layer1.style.clip = `rect(0px, ${b1}px, ${cHeight}px, 0px)`;
+  layer2.style.clip = `rect(0px, ${b2}px, ${cHeight}px, ${b1}px)`;
+  layer3.style.clip = `rect(0px, ${cWidth}px, ${cHeight}px, ${b2}px)`;
+
+  // 2. Griffe positionieren
+  //    -> Boxen: link= handleX
+  handle1.style.left = handle1X + "px";
+  handle2.style.left = handle2X + "px";
+
+  // 3. Z-Index aktualisieren
+  updateZOrder();
 }
 
-// Dynamische Z-Reihenfolge: 
-// Definition der Griffe, welcher gerade "oben" liegen soll mittels z-index
+/** 
+ * Dynamische Z-Reihenfolge:
+ *  - Wenn handle2X < handle1X => handle2 oben
+ *  - sonst handle1 oben
+ */
 function updateZOrder() {
-  if (handle2X <= MIN_HANDLE_X) {
-    // Griff2 liegt bei minimum x => handle2 oben
+  if (handle2X <= 0) {
     handle2.style.zIndex = 5;
     handle1.style.zIndex = 4;
   } else {
-    // Griff1 oben => handle1 oben
     handle1.style.zIndex = 5;
     handle2.style.zIndex = 4;
   }
 }
 
-// Wendet Positionen an + aktualisiert clip und z-Order
-function applyPositions() {
-  handle1.style.left = handle1X + 'px';
-  handle2.style.left = handle2X + 'px';
-  updateClips();
-  updateZOrder();
-}
-
-
 /*********************************************
- * Move-Funktionen (Push & Überlappung)
+ * (A) moveHandle1
  *********************************************/
-
-// Griff1 bewegen
 function moveHandle1(newX) {
-  newX = clamp(newX, MIN_HANDLE_X, MAX_HANDLE_X);
+  const rect = container.getBoundingClientRect();
+  const cWidth = rect.width;
 
-  // Push nur, wenn:
-  //  - isOrdered() = true (Griff1 < Griff2)
-  //  - Griff1 nicht ganz links
-  if (isOrdered() && !isHandle1AtLeftEdge()) {
-    // boundary1()+MIN_GAP <= boundary2()?
-    if ((newX + MIN_GAP) > handle2X) {
-      handle2X = newX + MIN_GAP;
-      handle2X = clamp(handle2X, MIN_HANDLE_X, MAX_HANDLE_X);
+  // clamp: [ -20 .. (cWidth - 20) ]
+  const minX = -HANDLE_RADIUS;
+  const maxX = cWidth - HANDLE_RADIUS;
+  newX = clamp(newX, minX, maxX);
+
+  // Falls geordnet und wir nicht "zwanghaft" 
+  // an den Rand wollen => Push 
+  if (isOrdered()) {
+    // boundary1()+MIN_GAP <= boundary2()
+    // => (newX+20)+MIN_GAP <= (handle2X+20)
+    if ( (newX + MIN_GAP) > handle2X ) {
+      let newHandle2X = newX + MIN_GAP;
+      // clamp
+      newHandle2X = clamp(newHandle2X, minX, maxX);
+      handle2X = newHandle2X;
     }
   }
 
@@ -122,18 +130,24 @@ function moveHandle1(newX) {
   applyPositions();
 }
 
-// Griff2 bewegen
+/*********************************************
+ * (B) moveHandle2
+ *********************************************/
 function moveHandle2(newX) {
-  newX = clamp(newX, MIN_HANDLE_X, MAX_HANDLE_X);
+  const rect = container.getBoundingClientRect();
+  const cWidth = rect.width;
 
-  // Push nur, wenn:
-  //  - isOrdered() = true (Griff1 < Griff2)
-  //  - Griff2 nicht ganz rechts
-  if (isOrdered() && !isHandle2AtRightEdge()) {
-    // boundary2()-MIN_GAP >= boundary1()
-    if ((newX - MIN_GAP) < handle1X) {
-      handle1X = newX - MIN_GAP;
-      handle1X = clamp(handle1X, MIN_HANDLE_X, MAX_HANDLE_X);
+  const minX = -HANDLE_RADIUS;
+  const maxX = cWidth - HANDLE_RADIUS;
+  newX = clamp(newX, minX, maxX);
+
+  if (isOrdered()) {
+    // boundary2() - MIN_GAP >= boundary1()
+    // => (newX+20)-MIN_GAP >= (handle1X+20)
+    if ( (newX - MIN_GAP) < handle1X ) {
+      let newHandle1X = newX - MIN_GAP;
+      newHandle1X = clamp(newHandle1X, minX, maxX);
+      handle1X = newHandle1X;
     }
   }
 
@@ -141,43 +155,75 @@ function moveHandle2(newX) {
   applyPositions();
 }
 
-
 /*********************************************
- * Pointer Events
+ * (C) Pointer Events
  *********************************************/
-handle1.addEventListener('pointerdown', (e) => {
+handle1.addEventListener('pointerdown', (evt) => {
   isDraggingHandle1 = true;
-  handle1.setPointerCapture(e.pointerId);
+  handle1.setPointerCapture(evt.pointerId);
 });
-handle1.addEventListener('pointermove', (e) => {
+handle1.addEventListener('pointermove', (evt) => {
   if (!isDraggingHandle1) return;
   const rect = container.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  moveHandle1(x);
+  const x = evt.clientX - rect.left;
+  // Falls wir wollen, dass x= Balkenmitte,
+  // subtrahieren wir 20:
+  moveHandle1(x - HANDLE_RADIUS);
 });
-handle1.addEventListener('pointerup', (e) => {
+handle1.addEventListener('pointerup', (evt) => {
   isDraggingHandle1 = false;
-  handle1.releasePointerCapture(e.pointerId);
+  handle1.releasePointerCapture(evt.pointerId);
 });
 
-handle2.addEventListener('pointerdown', (e) => {
+handle2.addEventListener('pointerdown', (evt) => {
   isDraggingHandle2 = true;
-  handle2.setPointerCapture(e.pointerId);
+  handle2.setPointerCapture(evt.pointerId);
 });
-handle2.addEventListener('pointermove', (e) => {
+handle2.addEventListener('pointermove', (evt) => {
   if (!isDraggingHandle2) return;
   const rect = container.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  moveHandle2(x);
+  const x = evt.clientX - rect.left;
+  moveHandle2(x - HANDLE_RADIUS);
 });
-handle2.addEventListener('pointerup', (e) => {
+handle2.addEventListener('pointerup', (evt) => {
   isDraggingHandle2 = false;
-  handle2.releasePointerCapture(e.pointerId);
+  handle2.releasePointerCapture(evt.pointerId);
 });
-
 
 /*********************************************
- * Initialisierung
+ * (D) Initialisierung
  *********************************************/
-applyPositions(); 
-// (Setzt die Startpositionen und aktualisiert Clips & Z-Order)
+function initPositions() {
+  // Containergröße
+  const rect = container.getBoundingClientRect();
+  const cWidth = rect.width;
+
+  // z.B. handle1X = 25% - 20, handle2X= 75% - 20
+  handle1X = 0.25 * cWidth - HANDLE_RADIUS;
+  handle2X = 0.75 * cWidth - HANDLE_RADIUS;
+
+  applyPositions();
+}
+
+// Wenn die Seite lädt, initialisieren wir
+window.addEventListener('load', initPositions);
+
+// Optional: Bei Fenster-Resize 
+// nur clampen oder komplett neu berechnen
+window.addEventListener('resize', () => {
+  // 1) Positionen beibehalten, nur clampen
+  //    (verhindert, dass Griffe aus dem Container rutschen)
+  const rect = container.getBoundingClientRect();
+  const cWidth = rect.width;
+  const minX = -HANDLE_RADIUS;
+  const maxX = cWidth - HANDLE_RADIUS;
+  
+  handle1X = clamp(handle1X, minX, maxX);
+  handle2X = clamp(handle2X, minX, maxX);
+  
+  applyPositions();
+
+  // 2) Alternativ: 
+  // initPositions(); 
+  // (dann Griffe springen wieder auf 25% / 75%)
+});
